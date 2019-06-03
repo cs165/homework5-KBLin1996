@@ -55,48 +55,63 @@ app.post('/api', jsonParser, onPost);
 async function onPost(req, res) {
   const messageBody = req.body;
 
-  const result = await sheet.getRows();
-  const rows = result.rows;
+  const lowerBody = Object.keys(messageBody).reduce(function(accumulator, currentValue) {
+    accumulator[currentValue.toLowerCase()] = messageBody[currentValue];
+    return accumulator;
+  }, {});
 
-  // TODO(you): Implement onPost.
-  let append = []
-  for(let i=0; i<rows[0].length; i++){
-    append[i] = messageBody[rows[0][i]];
+  const result = await sheet.getRows();
+  const columns = result.rows[0];
+  const MAXCOL = columns.length;
+  let row = [];
+  for(let i=0; i<MAXCOL; i++) {
+    if(lowerBody[columns[i]] !== undefined) {
+      row.push(lowerBody[columns[i]]);
+    }
   }
-  await sheet.appendRow(append)
-  res.json( { status: 'success'} );
+  if(row.length > 0) {
+    await sheet.appendRow(row);
+  }
+  res.json( { response: 'success'} );
 }
 app.post('/api', jsonParser, onPost);
 
 
 async function onPatch(req, res) {
-  const column  = req.params.column;
-  const value  = req.params.value;
+  const column  = req.params.column.trim().toLowerCase();;
+  const value  = req.params.value.trim();
   const messageBody = req.body;
 
+  const lowerBody = Object.keys(messageBody).reduce(function(accumulator, currentValue) {
+    accumulator[currentValue.toLowerCase()] = messageBody[currentValue];
+    return accumulator;
+  }, {});
+
   const result = await sheet.getRows();
-  const rows = result.rows;
+  const items = toJSON(result.rows);
+  const columns = result.rows[0];
+  const MAXCOL = columns.length;
 
-  var final=[];
-  var keys = Object.keys(messageBody)
-  console.log(keys)
-  // TODO(you): Implement onPatch.
-  for(i=0;i<rows[0].length;i++)
-    if(column === rows[0][i])
-      break;
-  for(j=0;j<rows[0].length;j++)
-    if(keys[0] === rows[0][j])
-      break;
-  for(idx=1;idx<rows.length;idx++)
-    if(value === rows[idx][i])
-      break
-  rows[idx][j] = messageBody[keys[0]]; 
+  const index = items.map(function(item) {
+    return item[column];
+  }).indexOf(value);
 
-  await sheet.setRow(idx,rows[idx]);
-  res.json( { status: 'success'} );
+  if(index !== -1) {
+    let row = [];
+    for(let i=0; i<MAXCOL; i++) {
+      if(lowerBody[columns[i]] !== undefined) {
+        row.push(lowerBody[columns[i]]);
+      }else if(items[index][columns[i]] !== undefined){
+        row.push(items[index][columns[i]]);
+      }
+    }
+    if(row.length > 0) {
+      await sheet.setRow(index+1,row);
+    }
+  }
+  res.json( { response: 'success'} );
 }
 app.patch('/api/:column/:value', jsonParser, onPatch);
-
 
 async function onDelete(req, res)
 {
