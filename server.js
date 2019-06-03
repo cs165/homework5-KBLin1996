@@ -78,38 +78,30 @@ app.post('/api', jsonParser, onPost);
 
 
 async function onPatch(req, res) {
-  const column  = req.params.column.trim().toLowerCase();;
-  const value  = req.params.value.trim();
+  const column  = req.params.column;
+  const value  = req.params.value;
   const messageBody = req.body;
 
-  const lowerBody = Object.keys(messageBody).reduce(function(accumulator, currentValue) {
-    accumulator[currentValue.toLowerCase()] = messageBody[currentValue];
-    return accumulator;
-  }, {});
-
   const result = await sheet.getRows();
-  const items = toJSON(result.rows);
-  const columns = result.rows[0];
-  const MAXCOL = columns.length;
+  const rows = result.rows;
 
-  const index = items.map(function(item) {
-    return item[column];
-  }).indexOf(value);
+  var final=[];
+  var keys = Object.keys(messageBody)
+  console.log(keys)
+  // TODO(you): Implement onPatch.
+  for(i=0;i<rows[0].length;i++)
+    if(column === rows[0][i])
+      break;
+  for(j=0;j<rows[0].length;j++)
+    if(keys[0] === rows[0][j])
+      break;
+  for(idx=1;idx<rows.length;idx++)
+    if(value === rows[idx][i])
+      break
+  rows[idx][j] = messageBody[keys[0]]; 
 
-  if(index !== -1) {
-    let row = [];
-    for(let i=0; i<MAXCOL; i++) {
-      if(lowerBody[columns[i]] !== undefined) {
-        row.push(lowerBody[columns[i]]);
-      }else if(items[index][columns[i]] !== undefined){
-        row.push(items[index][columns[i]]);
-      }
-    }
-    if(row.length > 0) {
-      await sheet.setRow(index+1,row);
-    }
-  }
-  res.json( { response: 'success'} );
+  await sheet.setRow(idx,rows[idx]);
+  res.json( { status: 'success'} );
 }
 app.patch('/api/:column/:value', jsonParser, onPatch);
 
